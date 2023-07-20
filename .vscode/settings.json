@@ -15,5 +15,6 @@
   },
   "[html]": {
     "editor.defaultFormatter": "esbenp.prettier-vscode"
-  }
+  },
+  "cSpell.words": ["commitlint", "fontsource", "heroicons", "tailwindcss"]
 }
