@@ -10,7 +10,7 @@
     "prepare": "husky install",
     "test": "vitest",
     "server": "node server/index.js",
-    "server:dev": "nodemon server/index.js"
+    "start": "nodemon server/index.js"
   },
   "dependencies": {
     "@emotion/react": "^11.11.1",
