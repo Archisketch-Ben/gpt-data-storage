@@ -40,10 +40,16 @@ export default function PromptGatheringTable() {
     [promptGatherings]
   )
 
+  const isProd = process.env.NODE_ENV === 'production'
+  const FETCH_URL = isProd
+    ? 'https://gpt-data-storage-df16986978f9.herokuapp.com/'
+    : 'http://localhost:3000/'
+
   React.useEffect(() => {
     const fetchData = async () => {
       const response = await fetch(
-        'http://localhost:3000/api/diffusion-prompt-gathering'
+        // 'http://localhost:3000/api/diffusion-prompt-gathering'
+        `${FETCH_URL}api/diffusion-prompt-gathering`
       )
       const data = await response.json()
       setPromptGatherings(data)
