@@ -1,12 +1,13 @@
 import React, { ReactElement } from 'react'
 
-import BasicTable from './components/Table'
+import PromptGatheringTable from './components/PromptGatheringTable'
+import { Box } from '@mui/material'
 
 function App(): ReactElement {
   return (
-    <div className="p-20 border shadow-xl border-gray-50 rounded-xl">
-      <BasicTable />
-    </div>
+    <Box sx={{ width: '100%', height: '100%' }}>
+      <PromptGatheringTable />
+    </Box>
   )
 }
 
