@@ -10,10 +10,11 @@ const app = express()
 app.use(
   cors({
     origin: isProd
-      ? 'https://gpt-data-storage-df16986978f9.herokuapp.com/'
-      : 'http://localhost:5173'
+      ? 'https://storied-muffin-f829de.netlify.app'
+      : 'http://localhost:3000'
   })
 )
+
 const port = process.env.PORT || 5000
 
 app.use(bodyParser.json())
