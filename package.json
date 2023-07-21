@@ -9,8 +9,8 @@
     "lint": "eslint . --ext .ts,.tsx,.js",
     "prepare": "husky install",
     "test": "vitest",
-    "server": "node server/index.js",
-    "start": "nodemon server/index.js"
+    "start": "node server/index.js",
+    "server": "nodemon server/index.js"
   },
   "dependencies": {
     "@emotion/react": "^11.11.1",
