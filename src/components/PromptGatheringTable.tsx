@@ -20,14 +20,8 @@ import 'dayjs/locale/ko'
 import Zoom from 'react-medium-image-zoom'
 import 'react-medium-image-zoom/dist/styles.css'
 import { Alert, Button, Snackbar } from '@mui/material'
-import axios from 'axios'
 
 dayjs.extend(relativeTime)
-
-const isProd = process.env.NODE_ENV === 'production'
-const FETCH_URL = isProd
-  ? 'https://gpt-data-storage-df16986978f9.herokuapp.com/'
-  : 'http://localhost:3000/'
 
 type PromptGathering = {
   transform_url: string
@@ -208,10 +202,13 @@ export default function PromptGatheringTable() {
 
   React.useEffect(() => {
     const fetchData = async () => {
-      const response = await axios.get(
-        `${FETCH_URL}api/diffusion-prompt-gathering`
-      )
-      setPromptGatherings(response.data)
+      const isProd = process.env.NODE_ENV === 'production'
+      const FETCH_URL = isProd
+        ? 'https://gpt-data-storage-df16986978f9.herokuapp.com/'
+        : 'http://localhost:3000/'
+      const response = await fetch(`${FETCH_URL}api/diffusion-prompt-gathering`)
+      const data = await response.json()
+      setPromptGatherings(data)
       setIsLoading(false)
     }
 

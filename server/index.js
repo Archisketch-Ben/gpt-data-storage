@@ -3,7 +3,6 @@ import bodyParser from 'body-parser'
 import AWS from 'aws-sdk'
 import cors from 'cors'
 import 'dotenv/config'
-import axios from 'axios'
 
 const isProd = process.env.NODE_ENV === 'production'
 
