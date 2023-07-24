@@ -15,7 +15,7 @@ app.use(
   })
 )
 
-const port = process.env.PORT || isProd ? 5000 : 3000
+const port = process.env.PORT || 5000
 
 app.use(bodyParser.json())
 

@@ -205,7 +205,7 @@ export default function PromptGatheringTable() {
       const isProd = process.env.NODE_ENV === 'production'
       const FETCH_URL = isProd
         ? 'https://gpt-data-storage-df16986978f9.herokuapp.com/'
-        : 'http://localhost:3000/'
+        : 'http://localhost:5000/'
       const response = await fetch(`${FETCH_URL}api/diffusion-prompt-gathering`)
       const data = await response.json()
       setPromptGatherings(data)
