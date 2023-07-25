@@ -68,7 +68,7 @@ async function createExcel(data: PromptGatheringWithIndex[]) {
       createdAt: item.createdAt,
       prompt: item.prompt,
       gpt_prompt: item.gpt_prompt,
-      origin_url: '',
+      origin_url: item.origin_url,
       transform_url: item.transform_url,
       feedback: item.feedback
     }
@@ -91,6 +91,18 @@ async function createExcel(data: PromptGatheringWithIndex[]) {
         const cell = sheet.getCell(`${alphabet}${i}`)
         cell.alignment = cellAlignmentStyle
       })
+
+      const originUrlCell = sheet.getCell(`I${i}`)
+      originUrlCell.value = {
+        formula: `HYPERLINK("${row.origin_url}", "origin")`,
+        date1904: false
+      }
+
+      const transformUrlCell = sheet.getCell(`J${i}`)
+      transformUrlCell.value = {
+        formula: `HYPERLINK("${row.transform_url}", "transform")`,
+        date1904: false
+      }
     }
 
     // FIXME: 병목 이슈로 사용하지 않음
@@ -203,9 +215,10 @@ export default function PromptGatheringTable() {
   React.useEffect(() => {
     const fetchData = async () => {
       const isProd = process.env.NODE_ENV === 'production'
+      const port = isProd ? 5000 : 3000
       const FETCH_URL = isProd
         ? 'https://gpt-data-storage-df16986978f9.herokuapp.com/'
-        : 'http://localhost:5000/'
+        : `http://localhost:${port}/`
       const response = await fetch(`${FETCH_URL}api/diffusion-prompt-gathering`)
       const data = await response.json()
       setPromptGatherings(data)
@@ -217,7 +230,7 @@ export default function PromptGatheringTable() {
 
   const baseColumns: GridColDef[] = [
     { field: 'id', headerName: 'ID', width: 90 },
-    { field: 'uuid', headerName: 'uuid', width: 60 },
+    { field: 'uuid', headerName: 'uuid', width: 120, flex: 0 },
     { field: 'user', headerName: 'user', width: 100 },
     {
       field: 'room_type',
