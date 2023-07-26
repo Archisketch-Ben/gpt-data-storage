@@ -19,7 +19,14 @@ import relativeTime from 'dayjs/plugin/relativeTime'
 import 'dayjs/locale/ko'
 import Zoom from 'react-medium-image-zoom'
 import 'react-medium-image-zoom/dist/styles.css'
-import { Alert, Button, Snackbar } from '@mui/material'
+import { Alert, Button, Checkbox, Snackbar } from '@mui/material'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+
+const isProd = process.env.NODE_ENV === 'production'
+const port = isProd ? 5000 : 3000
+const FETCH_URL = isProd
+  ? 'https://gpt-data-storage-df16986978f9.herokuapp.com/'
+  : `http://localhost:${port}/`
 
 dayjs.extend(relativeTime)
 
@@ -34,7 +41,10 @@ type PromptGathering = {
   origin_url: string
   feedback: string
   style: string
+  isSelected: boolean
 }
+
+type UpdatePromptGatheringParams = Pick<PromptGathering, 'uuid' | 'isSelected'>
 
 type PromptGatheringWithIndex = PromptGathering & {
   id: number
@@ -193,42 +203,103 @@ function CustomToolbar(
 }
 
 export default function PromptGatheringTable() {
-  const [isLoading, setIsLoading] = React.useState<boolean>(true)
-  const [promptGatherings, setPromptGatherings] = React.useState<
-    PromptGathering[]
-  >([])
+  const queryClient = useQueryClient()
 
   const [showLoadingSnackbar, setShowLoadingSnackbar] =
     React.useState<boolean>(false)
   const [showCompleteSnackbar, setShowCompleteSnackbar] =
     React.useState<boolean>(false)
 
-  const promptGatheringsWithIndex: PromptGatheringWithIndex[] = React.useMemo(
-    () =>
-      promptGatherings.map((item, index) => ({
-        ...item,
-        id: index + 1
-      })),
-    [promptGatherings]
-  )
-
-  React.useEffect(() => {
-    const fetchData = async () => {
-      const isProd = process.env.NODE_ENV === 'production'
-      const port = isProd ? 5000 : 3000
-      const FETCH_URL = isProd
-        ? 'https://gpt-data-storage-df16986978f9.herokuapp.com/'
-        : `http://localhost:${port}/`
+  const { data: promptGatherings, isLoading } = useQuery<PromptGathering[]>(
+    ['prompt-gatherings'],
+    async () => {
       const response = await fetch(`${FETCH_URL}api/diffusion-prompt-gathering`)
       const data = await response.json()
-      setPromptGatherings(data)
-      setIsLoading(false)
+      return data
     }
+  )
 
-    fetchData()
-  }, [])
+  const { mutate } = useMutation(
+    (params: UpdatePromptGatheringParams) =>
+      fetch(`${FETCH_URL}api/diffusion-prompt-gathering`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(params)
+      }),
+    {
+      onMutate: async (newTodo) => {
+        await queryClient.cancelQueries(['prompt-gatherings'])
+
+        const previousPromptGatherings = queryClient.getQueryData<
+          PromptGathering[]
+        >(['prompt-gatherings'])
+
+        queryClient.setQueryData<PromptGathering[]>(
+          ['prompt-gatherings'],
+          (old) => {
+            const updatedPromptGatherings = old?.map((item) => {
+              if (item.uuid === newTodo.uuid) {
+                return {
+                  ...item,
+                  isSelected: newTodo.isSelected
+                }
+              }
+              return item
+            })
+            return updatedPromptGatherings
+          }
+        )
+
+        return { previousPromptGatherings }
+      },
+      onError: (err, newTodo, context) => {
+        queryClient.setQueryData(
+          ['prompt-gatherings'],
+          context?.previousPromptGatherings
+        )
+      },
+      onSettled: () => {
+        queryClient.invalidateQueries(['prompt-gatherings'])
+      }
+    }
+  )
+
+  const promptGatheringsWithIndex: PromptGatheringWithIndex[] =
+    React.useMemo(
+      () =>
+        promptGatherings?.map((item, index) => ({
+          ...item,
+          id: index + 1
+        })),
+      [promptGatherings]
+    ) ?? []
 
   const baseColumns: GridColDef[] = [
+    {
+      field: 'isSelected',
+      headerName: '선택',
+      width: 90,
+      renderCell: (params) => {
+        const isSelected = (params.value as boolean) ?? false
+        const uuid = params.row.uuid
+        const handleSelect = () => {
+          mutate({
+            uuid,
+            isSelected: !isSelected
+          })
+        }
+
+        return (
+          <Checkbox
+            checked={isSelected}
+            onChange={handleSelect}
+            inputProps={{ 'aria-label': 'controlled' }}
+          />
+        )
+      }
+    },
     { field: 'id', headerName: 'ID', width: 90 },
     { field: 'uuid', headerName: 'uuid', width: 120, flex: 0 },
     { field: 'user', headerName: 'user', width: 100 },
@@ -365,11 +436,9 @@ export default function PromptGatheringTable() {
         loading={isLoading}
         rows={promptGatheringsWithIndex}
         columns={columns}
-        checkboxSelection
         // isRowSelectable={(params) => {
         //   return params.row.feedback !== 'Bad'
         // }}
-        disableRowSelectionOnClick
         getEstimatedRowHeight={() => 100}
         getRowHeight={() => 'auto'}
         slots={{

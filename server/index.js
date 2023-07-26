@@ -43,6 +43,30 @@ app.get('/api/diffusion-prompt-gathering', async (req, res) => {
   }
 })
 
+app.post('/api/diffusion-prompt-gathering', async (req, res) => {
+  const { uuid, isSelected } = req.body
+
+  const params = {
+    TableName: 'diffusion_prompt_gathering',
+    Key: {
+      uuid
+    },
+    UpdateExpression: 'set isSelected = :isSelected',
+    ExpressionAttributeValues: {
+      ':isSelected': isSelected
+    },
+    ReturnValues: 'UPDATED_NEW'
+  }
+
+  try {
+    await dynamoDB.update(params).promise()
+    res.send('Success')
+  } catch (err) {
+    console.error(`Error updating data from DynamoDB: ${err}`)
+    res.status(500).send(`Error updating data from DynamoDB: ${err}`)
+  }
+})
+
 // FIXME: 병목 이슈로 사용하지 않음
 // app.get('/api/fetch-image', async (req, res) => {
 //   const { url } = req.query
