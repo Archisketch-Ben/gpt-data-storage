@@ -1,3 +1,5 @@
+import { Alert, Button, Checkbox, Snackbar } from '@mui/material'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import * as React from 'react'
 import ExcelJS, { Style } from 'exceljs'
 import {
@@ -19,8 +21,6 @@ import relativeTime from 'dayjs/plugin/relativeTime'
 import 'dayjs/locale/ko'
 import Zoom from 'react-medium-image-zoom'
 import 'react-medium-image-zoom/dist/styles.css'
-import { Alert, Button, Checkbox, Snackbar } from '@mui/material'
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 
 const isProd = process.env.NODE_ENV === 'production'
 const port = isProd ? 5000 : 3000
@@ -210,14 +210,17 @@ export default function PromptGatheringTable() {
   const [showCompleteSnackbar, setShowCompleteSnackbar] =
     React.useState<boolean>(false)
 
-  const { data: promptGatherings, isLoading } = useQuery<PromptGathering[]>(
-    ['prompt-gatherings'],
-    async () => {
-      const response = await fetch(`${FETCH_URL}api/diffusion-prompt-gathering`)
-      const data = await response.json()
-      return data
-    }
-  )
+  const getPromptGatherings = async () => {
+    const response = await fetch(`${FETCH_URL}api/diffusion-prompt-gathering`)
+    const data = await response.json()
+
+    return data
+  }
+
+  const { data: promptGatherings, isLoading } = useQuery<PromptGathering[]>({
+    queryKey: ['prompt-gatherings'],
+    queryFn: getPromptGatherings
+  })
 
   const { mutate } = useMutation(
     (params: UpdatePromptGatheringParams) =>
@@ -229,7 +232,7 @@ export default function PromptGatheringTable() {
         body: JSON.stringify(params)
       }),
     {
-      onMutate: async (newTodo) => {
+      onMutate: async (updateParams) => {
         await queryClient.cancelQueries(['prompt-gatherings'])
 
         const previousPromptGatherings = queryClient.getQueryData<
@@ -240,10 +243,10 @@ export default function PromptGatheringTable() {
           ['prompt-gatherings'],
           (old) => {
             const updatedPromptGatherings = old?.map((item) => {
-              if (item.uuid === newTodo.uuid) {
+              if (item.uuid === updateParams.uuid) {
                 return {
                   ...item,
-                  isSelected: newTodo.isSelected
+                  isSelected: updateParams.isSelected
                 }
               }
               return item
@@ -254,7 +257,7 @@ export default function PromptGatheringTable() {
 
         return { previousPromptGatherings }
       },
-      onError: (err, newTodo, context) => {
+      onError: (err, updateParams, context) => {
         queryClient.setQueryData(
           ['prompt-gatherings'],
           context?.previousPromptGatherings
