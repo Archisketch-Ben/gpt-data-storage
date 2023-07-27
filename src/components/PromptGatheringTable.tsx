@@ -217,13 +217,15 @@ export default function PromptGatheringTable() {
     return data
   }
 
-  const { data: promptGatherings, isLoading } = useQuery<PromptGathering[]>({
+  const { data: promptGatherings, isLoading } = useQuery<
+    PromptGatheringWithIndex[]
+  >({
     queryKey: ['prompt-gatherings'],
     queryFn: getPromptGatherings
   })
 
-  const { mutate } = useMutation(
-    (params: UpdatePromptGatheringParams) =>
+  const { mutate } = useMutation({
+    mutationFn: (params: UpdatePromptGatheringParams) =>
       fetch(`${FETCH_URL}api/diffusion-prompt-gathering`, {
         method: 'POST',
         headers: {
@@ -231,53 +233,41 @@ export default function PromptGatheringTable() {
         },
         body: JSON.stringify(params)
       }),
-    {
-      onMutate: async (updateParams) => {
-        await queryClient.cancelQueries(['prompt-gatherings'])
+    onMutate: async (updateParams) => {
+      await queryClient.cancelQueries(['prompt-gatherings'])
 
-        const previousPromptGatherings = queryClient.getQueryData<
-          PromptGathering[]
-        >(['prompt-gatherings'])
+      const previousPromptGatherings = queryClient.getQueryData<
+        PromptGatheringWithIndex[]
+      >(['prompt-gatherings'])
 
-        queryClient.setQueryData<PromptGathering[]>(
-          ['prompt-gatherings'],
-          (old) => {
-            const updatedPromptGatherings = old?.map((item) => {
-              if (item.uuid === updateParams.uuid) {
-                return {
-                  ...item,
-                  isSelected: updateParams.isSelected
-                }
+      queryClient.setQueryData<PromptGatheringWithIndex[]>(
+        ['prompt-gatherings'],
+        (old) => {
+          const updatedPromptGatherings = old?.map((item) => {
+            if (item.uuid === updateParams.uuid) {
+              return {
+                ...item,
+                isSelected: updateParams.isSelected
               }
-              return item
-            })
-            return updatedPromptGatherings
-          }
-        )
+            }
+            return item
+          })
+          return updatedPromptGatherings
+        }
+      )
 
-        return { previousPromptGatherings }
-      },
-      onError: (err, updateParams, context) => {
-        queryClient.setQueryData(
-          ['prompt-gatherings'],
-          context?.previousPromptGatherings
-        )
-      },
-      onSettled: () => {
-        queryClient.invalidateQueries(['prompt-gatherings'])
-      }
+      return { previousPromptGatherings }
+    },
+    onError: (err, updateParams, context) => {
+      queryClient.setQueryData(
+        ['prompt-gatherings'],
+        context?.previousPromptGatherings
+      )
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries(['prompt-gatherings'])
     }
-  )
-
-  const promptGatheringsWithIndex: PromptGatheringWithIndex[] =
-    React.useMemo(
-      () =>
-        promptGatherings?.map((item, index) => ({
-          ...item,
-          id: index + 1
-        })),
-      [promptGatherings]
-    ) ?? []
+  })
 
   const baseColumns: GridColDef[] = [
     {
@@ -408,7 +398,7 @@ export default function PromptGatheringTable() {
       return
     }
 
-    createExcel(promptGatheringsWithIndex)
+    createExcel(promptGatherings ?? [])
       .then(() => {
         setShowCompleteSnackbar(true)
       })
@@ -437,7 +427,7 @@ export default function PromptGatheringTable() {
       </Snackbar>
       <DataGrid
         loading={isLoading}
-        rows={promptGatheringsWithIndex}
+        rows={promptGatherings ?? []}
         columns={columns}
         // isRowSelectable={(params) => {
         //   return params.row.feedback !== 'Bad'

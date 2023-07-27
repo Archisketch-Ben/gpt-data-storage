@@ -36,7 +36,11 @@ app.get('/api/diffusion-prompt-gathering', async (req, res) => {
 
   try {
     const data = await dynamoDB.scan(params).promise()
-    res.send(data.Items)
+    data.Items.sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt))
+    data.Items.forEach((item, index) => {
+      item.id = index + 1
+    })
+    res.send(data.Items.reverse())
   } catch (err) {
     console.error(`Error fetching data from DynamoDB: ${err}`)
     res.status(500).send(`Error fetching data from DynamoDB: ${err}`)
