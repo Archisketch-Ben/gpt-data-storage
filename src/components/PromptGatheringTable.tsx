@@ -435,7 +435,7 @@ export default function PromptGatheringTable() {
   }
 
   const handleRefreshPromptGatherings = () => {
-    queryClient.invalidateQueries(['prompt-gatherings'])
+    queryClient.refetchQueries(['prompt-gatherings'])
   }
 
   return (
