@@ -162,6 +162,7 @@ const options: GridCsvExportOptions = {
 
 function CustomToolbar(
   exportExcel: () => void,
+  handleRefreshPromptGatherings: () => void,
   toolbarContainerProps?: GridToolbarContainerProps,
   toolbarExportContainerProps?: GridToolbarExportProps
 ) {
@@ -180,6 +181,21 @@ function CustomToolbar(
     }
   }, [isExporting])
 
+  const [isRefreshing, setIsRefreshing] = React.useState<boolean>(false)
+
+  const handleRefresh = () => {
+    setIsRefreshing(true)
+    handleRefreshPromptGatherings()
+  }
+
+  React.useEffect(() => {
+    if (isRefreshing) {
+      setTimeout(() => {
+        setIsRefreshing(false)
+      }, 3_000)
+    }
+  }, [isRefreshing])
+
   return (
     <GridToolbarContainer {...toolbarContainerProps}>
       <GridToolbarExport
@@ -197,6 +213,15 @@ function CustomToolbar(
         disabled={isExporting}
       >
         Excel로 내보내기
+      </Button>
+      <Button
+        className="!ml-auto !mr-6"
+        variant="contained"
+        size="small"
+        onClick={handleRefresh}
+        disabled={isRefreshing}
+      >
+        데이터 새로 가져오기
       </Button>
     </GridToolbarContainer>
   )
@@ -409,6 +434,10 @@ export default function PromptGatheringTable() {
       })
   }
 
+  const handleRefreshPromptGatherings = () => {
+    queryClient.invalidateQueries(['prompt-gatherings'])
+  }
+
   return (
     <>
       <Snackbar
@@ -437,7 +466,8 @@ export default function PromptGatheringTable() {
         getEstimatedRowHeight={() => 100}
         getRowHeight={() => 'auto'}
         slots={{
-          toolbar: () => CustomToolbar(handleExportExcel)
+          toolbar: () =>
+            CustomToolbar(handleExportExcel, handleRefreshPromptGatherings)
         }}
         sx={{
           '&.MuiDataGrid-root--densityCompact .MuiDataGrid-cell': {
