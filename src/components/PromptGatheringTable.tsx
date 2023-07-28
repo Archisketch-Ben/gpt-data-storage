@@ -50,6 +50,10 @@ type PromptGatheringWithIndex = PromptGathering & {
   id: number
 }
 
+type AdditionalElement = {
+  render: () => JSX.Element
+}
+
 async function createExcel(data: PromptGatheringWithIndex[]) {
   const workbook = new ExcelJS.Workbook()
   const sheet = workbook.addWorksheet('archi-prompt')
@@ -161,40 +165,23 @@ const options: GridCsvExportOptions = {
 }
 
 function CustomToolbar(
-  exportExcel: () => void,
-  handleRefreshPromptGatherings: () => void,
+  additionalElement?: AdditionalElement[],
   toolbarContainerProps?: GridToolbarContainerProps,
   toolbarExportContainerProps?: GridToolbarExportProps
 ) {
-  const [isExporting, setIsExporting] = React.useState<boolean>(false)
+  // const [isRefreshing, setIsRefreshing] = React.useState<boolean>(false)
 
-  const handleExportExcel = () => {
-    setIsExporting(true)
-    exportExcel()
-  }
+  // const handleRefresh = () => {
+  //   setIsRefreshing(true)
+  // }
 
-  React.useEffect(() => {
-    if (isExporting) {
-      setTimeout(() => {
-        setIsExporting(false)
-      }, 3_000)
-    }
-  }, [isExporting])
-
-  const [isRefreshing, setIsRefreshing] = React.useState<boolean>(false)
-
-  const handleRefresh = () => {
-    setIsRefreshing(true)
-    handleRefreshPromptGatherings()
-  }
-
-  React.useEffect(() => {
-    if (isRefreshing) {
-      setTimeout(() => {
-        setIsRefreshing(false)
-      }, 3_000)
-    }
-  }, [isRefreshing])
+  // React.useEffect(() => {
+  //   if (isRefreshing) {
+  //     setTimeout(() => {
+  //       setIsRefreshing(false)
+  //     }, 3_000)
+  //   }
+  // }, [isRefreshing])
 
   return (
     <GridToolbarContainer {...toolbarContainerProps}>
@@ -206,23 +193,9 @@ function CustomToolbar(
       <GridToolbarColumnsButton />
       <GridToolbarFilterButton />
       <GridToolbarQuickFilter />
-      <Button
-        variant="contained"
-        size="small"
-        onClick={handleExportExcel}
-        disabled={isExporting}
-      >
-        Excel로 내보내기
-      </Button>
-      <Button
-        className="!ml-auto !mr-6"
-        variant="contained"
-        size="small"
-        onClick={handleRefresh}
-        disabled={isRefreshing}
-      >
-        데이터 새로 가져오기
-      </Button>
+      {additionalElement?.map((element, index) => (
+        <React.Fragment key={index}>{element.render()}</React.Fragment>
+      ))}
     </GridToolbarContainer>
   )
 }
@@ -419,24 +392,87 @@ export default function PromptGatheringTable() {
     })
   }, [baseColumns])
 
+  const [isRefreshLoading, setIsRefreshLoading] = React.useState<boolean>(false)
+
+  const handleRefreshPromptGatherings = () => {
+    if (isRefreshLoading) {
+      return
+    }
+
+    setIsRefreshLoading(true)
+
+    queryClient
+      .refetchQueries(['prompt-gatherings'])
+      .then(() => {
+        setIsRefreshLoading(false)
+      })
+      .catch((err) => {
+        console.error(`refetch error: ${err}`)
+        setIsRefreshLoading(false)
+      })
+  }
+
+  const refreshButton = React.useMemo(() => {
+    return {
+      render: () => {
+        return (
+          <Button
+            className="!ml-auto !mr-6"
+            variant="contained"
+            onClick={handleRefreshPromptGatherings}
+            disabled={isRefreshLoading}
+          >
+            데이터 새로 가져오기
+          </Button>
+        )
+      }
+    }
+  }, [isRefreshLoading])
+
+  const [isExporting, setIsExporting] = React.useState<boolean>(false)
+
   const handleExportExcel = () => {
     if (isLoading) {
       setShowLoadingSnackbar(true)
       return
     }
 
-    createExcel(promptGatherings ?? [])
-      .then(() => {
+    setIsExporting(true)
+
+    const selectedPromptGatherings = promptGatherings?.filter(
+      (item) => item.isSelected
+    )
+
+    if (selectedPromptGatherings) {
+      createExcel(selectedPromptGatherings).finally(() => {
+        setShowLoadingSnackbar(false)
         setShowCompleteSnackbar(true)
       })
-      .catch((err) => {
-        console.error(err)
-      })
+    }
   }
 
-  const handleRefreshPromptGatherings = () => {
-    queryClient.refetchQueries(['prompt-gatherings'])
-  }
+  const exportExcelButton = React.useMemo(() => {
+    return {
+      render: () => (
+        <Button
+          variant="contained"
+          size="small"
+          onClick={handleExportExcel}
+          disabled={isExporting}
+        >
+          Excel로 내보내기
+        </Button>
+      )
+    }
+  }, [isExporting])
+
+  React.useEffect(() => {
+    if (isExporting) {
+      setTimeout(() => {
+        setIsExporting(false)
+      }, 3_000)
+    }
+  }, [isExporting])
 
   return (
     <>
@@ -466,8 +502,7 @@ export default function PromptGatheringTable() {
         getEstimatedRowHeight={() => 100}
         getRowHeight={() => 'auto'}
         slots={{
-          toolbar: () =>
-            CustomToolbar(handleExportExcel, handleRefreshPromptGatherings)
+          toolbar: () => CustomToolbar([exportExcelButton, refreshButton])
         }}
         sx={{
           '&.MuiDataGrid-root--densityCompact .MuiDataGrid-cell': {
