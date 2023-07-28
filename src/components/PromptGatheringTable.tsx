@@ -270,29 +270,6 @@ export default function PromptGatheringTable() {
   })
 
   const baseColumns: GridColDef[] = [
-    {
-      field: 'isSelected',
-      headerName: '선택',
-      width: 90,
-      renderCell: (params) => {
-        const isSelected = (params.value as boolean) ?? false
-        const uuid = params.row.uuid
-        const handleSelect = () => {
-          mutate({
-            uuid,
-            isSelected: !isSelected
-          })
-        }
-
-        return (
-          <Checkbox
-            checked={isSelected}
-            onChange={handleSelect}
-            inputProps={{ 'aria-label': 'controlled' }}
-          />
-        )
-      }
-    },
     { field: 'id', headerName: 'ID', width: 90 },
     { field: 'uuid', headerName: 'uuid', width: 120, flex: 0 },
     { field: 'user', headerName: 'user', width: 100 },
@@ -368,6 +345,31 @@ export default function PromptGatheringTable() {
           {params.value}
         </div>
       )
+    },
+    {
+      field: 'isSelected',
+      headerName: '최종 선택',
+      width: 90,
+      cellClassName: '!p-0',
+      renderCell: (params) => {
+        const isSelected = (params.value as boolean) ?? false
+        const uuid = params.row.uuid
+        const handleSelect = () => {
+          mutate({
+            uuid,
+            isSelected: !isSelected
+          })
+        }
+
+        return (
+          <Checkbox
+            className="w-full h-full !rounded-none"
+            checked={isSelected}
+            onChange={handleSelect}
+            inputProps={{ 'aria-label': 'controlled' }}
+          />
+        )
+      }
     }
   ]
 

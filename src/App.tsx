@@ -1,7 +1,7 @@
 import React, { ReactElement } from 'react'
+import { Box } from '@mui/material'
 
 import PromptGatheringTable from './components/PromptGatheringTable'
-import { Box } from '@mui/material'
 
 function App(): ReactElement {
   return (
