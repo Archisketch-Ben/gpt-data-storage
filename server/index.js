@@ -34,13 +34,20 @@ app.get('/api/diffusion-prompt-gathering', async (req, res) => {
     TableName: 'diffusion_prompt_gathering'
   }
 
+  let items = []
   try {
-    const data = await dynamoDB.scan(params).promise()
-    data.Items.sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt))
-    data.Items.forEach((item, index) => {
+    let data
+    do {
+      data = await dynamoDB.scan(params).promise()
+      data.Items.forEach((item) => items.push(item))
+      params.ExclusiveStartKey = data.LastEvaluatedKey
+    } while (typeof data.LastEvaluatedKey != 'undefined')
+
+    items.sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt))
+    items.forEach((item, index) => {
       item.id = index + 1
     })
-    res.send(data.Items.reverse())
+    res.send(items.reverse())
   } catch (err) {
     console.error(`Error fetching data from DynamoDB: ${err}`)
     res.status(500).send(`Error fetching data from DynamoDB: ${err}`)
